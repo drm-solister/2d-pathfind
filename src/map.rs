@@ -131,81 +131,112 @@ struct PxLine {
     endpoint: Point2<f32>,
 }
 
-pub fn dda() {
-    todo!();
-}
+pub fn dda(my_game: &mut MyGame, origin: Point2<f32>, endpoint: Point2<f32>) {
+    let dx = endpoint.x - origin.x;
+    let dy = endpoint.y - origin.y;
 
-pub fn bresenhams(my_game: &mut MyGame, origin: Point2<f32>, endpoint: Point2<f32>) {
-
-    if (endpoint.y - orgin.y).abs() < (endpoint.x - origin.x).abs() {
-        if origin.x > endpoint.x {
-            plot_low();
-        } else {
-            plot_low();
-        }
+    let steps;
+    if dx.abs() > dy.abs() {
+        steps = dx.abs();
     } else {
-        if origin.y > endpoint.y {
-            plot_high();
-        } else {
-            plot_high();
+        steps = dy.abs();
+    }
+
+    let x_inc = dx / steps;
+    let y_inc = dy / steps;
+
+    let mut x = origin.x;
+    let mut y = origin.y;
+
+    for i in 0..=steps as u16 {
+        let index = index_from_mouse(my_game, Point2{ x, y});
+
+        match my_game.tile_states[index] {
+            TileState::Full(ref mut x) => {
+                *x = true;
+                return;
+            }
+            TileState::Empty(ref mut x) => *x = true,
         }
-    }
 
-}
-
-// helpers for bresenhams
-fn plot_high() {
-    let mut dx = endpoint.x - origin.x;
-    let mut dy = endpoint.y - origin.y;
-    let mut xi = 1.0;
-
-    if dx < 0 {
-        xi = -1.0;
-        dx = -dx;
-    }
-
-    let mut d = (2.0 * dx) - dy;
-    x = origin.x;
-
-    for y in origin.y..endpoint.y {
-        observe_index(tile_states, index_from_mouse(my_game, Point2{x, y}));
-        if d > 0.0 {
-            x += xi;
-            d = d + (2.0 * (dx - dy));
-        } else {
-            d = d + 2.0*dx;
-        }
+        x += x_inc;
+        y += y_inc;
     }
 }
 
-fn plot_low() {
-    let mut dx = endpoint.x - origin.x;
-    let mut dy = endpoint.y - origin.y;
-    let mut yi = 1.0;
 
-    if dy < 0 {
-        xi = -1.0;
-        dx = -dx;
-    }
+// my brain is too small to understand why this doesnt work
+// pub fn bresenhams(my_game: &mut MyGame, origin: Point2<f32>, endpoint: Point2<f32>) {
 
-    let mut d = (2 * dx) - dy;
-    y = origin.y;
+//     if (endpoint.y - orgin.y).abs() < (endpoint.x - origin.x).abs() {
+//         if origin.x > endpoint.x {
+//             plot_low();
+//         } else {
+//             plot_low();
+//         }
+//     } else {
+//         if origin.y > endpoint.y {
+//             plot_high();
+//         } else {
+//             plot_high();
+//         }
+//     }
 
-    for y in origin.x..endpoint.x {
-        observe_index(tile_states, index_from_mouse(my_game, Point2{x, y}));
-        if d > 0.0 {
-            y += yi;
-            d = d + (2.0 * (dy - dx));
-        } else {
-            d = d + 2.0*dy;
-        }
-    }
-}
+// }
 
-fn observe_index(tile_states: &mut Vec<TileState>, index: usize) {
-    match tile_states[index] {
-        TileState::Full(ref mut x) => *x = true,
-        TileState::Empty(ref mut x) => *x = true,
-        _ => (),
-    }
-}
+// // helpers for bresenhams
+// fn plot_high() {
+//     let mut dx = endpoint.x - origin.x;
+//     let mut dy = endpoint.y - origin.y;
+//     let mut xi = 1.0;
+
+//     if dx < 0 {
+//         xi = -1.0;
+//         dx = -dx;
+//     }
+
+//     let mut d = (2.0 * dx) - dy;
+//     x = origin.x;
+
+//     for y in origin.y..endpoint.y {
+//         observe_index(tile_states, index_from_mouse(my_game, Point2{x, y}));
+//         if d > 0.0 {
+//             x += xi;
+//             d = d + (2.0 * (dx - dy));
+//         } else {
+//             d = d + 2.0*dx;
+//         }
+//     }
+// }
+
+// fn plot_low() {
+//     let mut dx = endpoint.x - origin.x;
+//     let mut dy = endpoint.y - origin.y;
+//     let mut yi = 1.0;
+
+//     if dy < 0 {
+//         xi = -1.0;
+//         dx = -dx;
+//     }
+
+//     let mut d = (2 * dx) - dy;
+//     y = origin.y;
+
+//     for y in origin.x..endpoint.x {
+//         observe_index(tile_states, index_from_mouse(my_game, Point2{x, y}));
+//         if d > 0.0 {
+//             y += yi;
+//             d = d + (2.0 * (dy - dx));
+//         } else {
+//             d = d + 2.0*dy;
+//         }
+//     }
+// }
+
+// fn observe_index(tile_states: &mut Vec<TileState>, index: usize) {
+//     match tile_states[index] {
+//         TileState::Full(ref mut x) => *x = true,
+//         TileState::Empty(ref mut x) => *x = true,
+//         _ => (),
+//     }
+// }

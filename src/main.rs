@@ -86,7 +86,8 @@ impl EventHandler for MyGame {
         let origin = Point2{x: 10.0, y: 10.0};
         // map::draw_line(ctx, origin, mouse_pos);
 
-        map::find_visible_on_line(self, origin, mouse_pos);
+        //map::find_visible_on_line(self, origin, mouse_pos);
+        map::dda(self, origin, mouse_pos);
 
         // if ggez::timer::ticks(&_ctx) % 50 == 0 {
         //     println!("fps: {:?}", ggez::timer::fps(&_ctx));
