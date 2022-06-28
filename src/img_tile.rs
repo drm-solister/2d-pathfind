@@ -13,7 +13,7 @@ pub fn new(ctx: &mut Context, length: u16) -> Image {
     }
 
     let mut hollow = vec![255; (length*length*4) as usize];
-    let stroke = 1; // 10px stroke
+    let stroke = 5;
 
     if length < stroke {
         panic!("the width of a tile is less than the stroke that would draw it")

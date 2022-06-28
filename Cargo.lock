@@ -859,15 +859,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ggez-test"
-version = "0.1.0"
-dependencies = [
- "ggez",
- "glam",
- "mint",
-]
-
-[[package]]
 name = "gif"
 version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1786,6 +1777,15 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "winapi",
+]
+
+[[package]]
+name = "pathfind-2d"
+version = "0.1.0"
+dependencies = [
+ "ggez",
+ "glam",
+ "mint",
 ]
 
 [[package]]

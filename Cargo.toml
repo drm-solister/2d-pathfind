@@ -1,5 +1,5 @@
 [package]
-name = "2d-pathfind"
+name = "pathfind-2d"
 version = "0.1.0"
 edition = "2021"
 

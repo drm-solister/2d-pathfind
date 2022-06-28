@@ -1,6 +1,6 @@
 #![allow(dead_code, unused_imports)]
 use ggez;
-use ggez::graphics::{self, Mesh, Color, DrawParam, Image, spritebatch::SpriteBatch};
+use ggez::graphics::{self, Mesh, Color, DrawParam, Image, spritebatch::SpriteBatch, MeshBuilder};
 use ggez::{Context, ContextBuilder, GameResult};
 use ggez::event::{self, EventHandler};
 
@@ -12,7 +12,7 @@ mod map;
 
 fn main() {
 
-    let dimensions: (u16, u16) = (80, 40);
+    let dimensions: (u16, u16) = (30, 25);
     let tile_size = 20.0;
 
     let width = dimensions.0 as f32 * tile_size;
@@ -57,11 +57,11 @@ impl MyGame {
         // let tile_size = 10.0;
 
         let mut tile_states = vec![TileState::Empty(false); (dimensions.0 as u32 *dimensions.1 as u32) as usize];
-        // for i in 0..dimensions.0*dimensions.1 {
-        //     if i%3 == 0 {
-        //         tile_states[i as usize] = TileState::Full(false);
-        //     }
-        // }
+        for i in 0..dimensions.0*dimensions.1 {
+            if i%10 == 0 && i%30 != 0{
+                tile_states[i as usize] = TileState::Full(false);
+            }
+        }
 
         MyGame {
             dimensions,
@@ -97,11 +97,11 @@ impl EventHandler for MyGame {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
 
+        graphics::clear(ctx, Color::WHITE);
+
         // this creates a spritebatch which sources everything from a single image, which is generated in img_tile.rs
         // based on the TileState that corresponds which each tile, the tile will be hollow or full and have whatever
         // color is desired. (empty tiles are hollow, obstructions are filled)
-
-        graphics::clear(ctx, Color::WHITE);
 
         let mut batch = SpriteBatch::new(self.spritesheet.image.clone());
 
@@ -118,11 +118,12 @@ impl EventHandler for MyGame {
                             .src( graphics::Rect{ x: 0.0, y:0.0, w:1.0, h:0.5} )
                             .color(Color::from_rgba(9,17,51,alpha));
                     },
-                    TileState::Empty(known) => {
-                        if !known { alpha = 125 }
+                    TileState::Empty(ref mut known) => {
+                        if !*known { alpha = 125 }
                         param = param
                             .src( graphics::Rect{ x: 0.0, y:0.5, w:1.0, h:0.5} )
                             .color(Color::from_rgba(124,174,195,alpha));
+                        *known = false;
                     },
                     _ => (),
                 }
@@ -133,12 +134,21 @@ impl EventHandler for MyGame {
         graphics::draw(ctx, &batch, DrawParam::default())?;
 
 
-        // for debugging, this code draws a line
-
+        // for debugging, this draws a line
         let mouse_pos = ggez::input::mouse::position(ctx);
         let origin = Point2{x: 10.0, y: 10.0};
+        let target = Point2{x: 300.0, y: 400.0};
         map::draw_line(ctx, origin, mouse_pos);
-        //map::distance_from_line(origin, mouse_pos, Point2{x: 0.0, y: 0.0});
+        // let dot = Mesh::new_circle(
+        //     ctx,
+        //     graphics::DrawMode::fill(),
+        //     target,
+        //     5.0,
+        //     0.1,
+        //     Color::BLUE
+        // ).unwrap();
+        // graphics::draw(ctx, &dot, DrawParam::default());
+        // println!("distance: {:?}", map::distance_from_line(origin, mouse_pos, target));
         
         graphics::present(ctx)
 
@@ -175,16 +185,19 @@ pub struct SpriteSheet {
 // current sprite batch approach might have to cut it, at least for now.
 
 // todo
-// make the screen size fit the tile map
+// [x] - make the screen size fit the tile map
 // add the actor code back in 
-// get back on finding out how to draw lines on a discrete grid
+// [x] - get back on finding out how to draw lines on a discrete grid - rudimentary implementation in place
+//      is DDA faster than flood fill for my needs?
+//      probably. implement DDA or breshzanms or however you spell that
+//      but also i may just have slight math mistakes in my algorithm
+//      but it literally uses inverse square roots but slow
+
 // add back in clicking to add full tiles
 // make sprite for actor and target
 // refactor everything to make it easier to read
 // put text on the screen for debugging
 // test performance on a better computer
-
-// thigs break with some dimensions
 
 // could still only update the tiles i need to update and speed up the drawing massively
 // an easy thing to do would be to only update tiles in a radius around the actor
