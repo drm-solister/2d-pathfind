@@ -20,6 +20,18 @@ pub fn index_from_mouse(my_game: &mut MyGame, mouse: Point2<f32>) -> usize {
     return index as usize
 }
 
+// this one doesnt take my_game but only the parts it needs
+pub fn index_from_mouse2(tile_size: f32, dimensions: (u16, u16), mouse: Point2<f32>) -> usize {
+    let mut x = (mouse.x - mouse.x % tile_size) / tile_size;
+    let mut y = (mouse.y - mouse.y % tile_size) / tile_size;
+
+    let x = x.clamp(0.0, dimensions.0 as f32 -1.0); // why tf is x and y switched ??
+    let y = y.clamp(0.0, dimensions.1 as f32 -1.0);
+
+    let index = y as u16 * dimensions.0 + x as u16;
+    return index as usize
+}
+
 pub fn coords_from_mouse(my_game: &mut MyGame, mouse: Point2<f32>) -> Point2<u16> {
     let mut x = (mouse.x - mouse.x % my_game.tile_size) / my_game.tile_size;
     let mut y = (mouse.y - mouse.y % my_game.tile_size) / my_game.tile_size;
@@ -30,6 +42,7 @@ pub fn coords_from_mouse(my_game: &mut MyGame, mouse: Point2<f32>) -> Point2<u16
     return Point2{x: x as u16, y: y as u16}
 }
 
+// --- UNUSED ---
 // find all the tiles on a line (based on endpoints) that are visible and return them in a vector. flood-fill algorithm
 pub fn find_visible_on_line(my_game: &mut MyGame, origin: Point2<f32>, endpoint: Point2<f32>) {
     
@@ -48,6 +61,7 @@ pub fn find_visible_on_line(my_game: &mut MyGame, origin: Point2<f32>, endpoint:
 
 }
 
+// --- UNUSED ---
 // hard coded values in here: horizontal dimension, pixel size
 fn flood_and_find(dimensions: (u16, u16), tile_states: &mut Vec<TileState>, px_line: &PxLine, point: Point2<u16>, indicies_seen_this_pass: &mut Vec<usize>) {
     // hard coded because i dont have access to this data but i should
@@ -92,6 +106,7 @@ fn flood_and_find(dimensions: (u16, u16), tile_states: &mut Vec<TileState>, px_l
 
 }
 
+// --- UNUSED ---
 // helper function for visible_on_line()
 // distance from a point to a line (based on endpoints)
 pub fn distance_from_line(origin: Point2<f32>, endpoint: Point2<f32>, point: Point2<f32>) -> f32 {
@@ -131,7 +146,7 @@ struct PxLine {
     endpoint: Point2<f32>,
 }
 
-pub fn dda(my_game: &mut MyGame, origin: Point2<f32>, endpoint: Point2<f32>) {
+pub fn dda(tile_states: &mut Vec<TileState>, tile_size: f32, dimensions: (u16, u16), origin: Point2<f32>, endpoint: Point2<f32>) {
     let dx = endpoint.x - origin.x;
     let dy = endpoint.y - origin.y;
 
@@ -149,9 +164,9 @@ pub fn dda(my_game: &mut MyGame, origin: Point2<f32>, endpoint: Point2<f32>) {
     let mut y = origin.y;
 
     for i in 0..=steps as u16 {
-        let index = index_from_mouse(my_game, Point2{ x, y});
+        let index = index_from_mouse2(tile_size, dimensions, Point2{ x, y});
 
-        match my_game.tile_states[index] {
+        match tile_states[index] {
             TileState::Full(ref mut x) => {
                 *x = true;
                 return;
@@ -163,80 +178,3 @@ pub fn dda(my_game: &mut MyGame, origin: Point2<f32>, endpoint: Point2<f32>) {
         y += y_inc;
     }
 }
-
-
-// my brain is too small to understand why this doesnt work
-// pub fn bresenhams(my_game: &mut MyGame, origin: Point2<f32>, endpoint: Point2<f32>) {
-
-//     if (endpoint.y - orgin.y).abs() < (endpoint.x - origin.x).abs() {
-//         if origin.x > endpoint.x {
-//             plot_low();
-//         } else {
-//             plot_low();
-//         }
-//     } else {
-//         if origin.y > endpoint.y {
-//             plot_high();
-//         } else {
-//             plot_high();
-//         }
-//     }
-
-// }
-
-// // helpers for bresenhams
-// fn plot_high() {
-//     let mut dx = endpoint.x - origin.x;
-//     let mut dy = endpoint.y - origin.y;
-//     let mut xi = 1.0;
-
-//     if dx < 0 {
-//         xi = -1.0;
-//         dx = -dx;
-//     }
-
-//     let mut d = (2.0 * dx) - dy;
-//     x = origin.x;
-
-//     for y in origin.y..endpoint.y {
-//         observe_index(tile_states, index_from_mouse(my_game, Point2{x, y}));
-//         if d > 0.0 {
-//             x += xi;
-//             d = d + (2.0 * (dx - dy));
-//         } else {
-//             d = d + 2.0*dx;
-//         }
-//     }
-// }
-
-// fn plot_low() {
-//     let mut dx = endpoint.x - origin.x;
-//     let mut dy = endpoint.y - origin.y;
-//     let mut yi = 1.0;
-
-//     if dy < 0 {
-//         xi = -1.0;
-//         dx = -dx;
-//     }
-
-//     let mut d = (2 * dx) - dy;
-//     y = origin.y;
-
-//     for y in origin.x..endpoint.x {
-//         observe_index(tile_states, index_from_mouse(my_game, Point2{x, y}));
-//         if d > 0.0 {
-//             y += yi;
-//             d = d + (2.0 * (dy - dx));
-//         } else {
-//             d = d + 2.0*dy;
-//         }
-//     }
-// }
-
-// fn observe_index(tile_states: &mut Vec<TileState>, index: usize) {
-//     match tile_states[index] {
-//         TileState::Full(ref mut x) => *x = true,
-//         TileState::Empty(ref mut x) => *x = true,
-//         _ => (),
-//     }
-// }
