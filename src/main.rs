@@ -46,9 +46,7 @@ fn main() {
 }
 
 pub struct MyGame {
-    pub dimensions: (u16, u16),
-    pub tile_size: f32,
-    pub tile_states: Vec<TileState>,
+    pub map: map::Map,
     pub spritesheet: SpriteSheet,
     pub actor: actor::Actor,
 }
@@ -67,9 +65,7 @@ impl MyGame {
         }
 
         MyGame {
-            dimensions,
-            tile_size,
-            tile_states,
+            map: map::Map::new(dimensions, tile_size),
             spritesheet: SpriteSheet {
                 image: img_tile::new(ctx, tile_size as u16),
                 empty: (0.0, 0.5),
@@ -94,7 +90,7 @@ impl EventHandler for MyGame {
         //map::find_visible_on_line(self, origin, mouse_pos);
 
         // better - highlights all the pixels that the line crosses from origin to mouse
-        //map::dda(self, origin, mouse_pos);
+        //map::Map::dda(self, origin, mouse_pos);
 
         // --- handle inputs ---
         let mut v_x = 0.0;
@@ -113,7 +109,7 @@ impl EventHandler for MyGame {
 
         self.actor.update_pos(Vector2{x: v_x, y: v_y});
         // need tile_states, tile_size, dimensions
-        self.actor.look_around(&mut self.tile_states, self.tile_size, self.dimensions);
+        self.map.look_around(&mut self.actor);
 
         // --- fps counter ---
         if ggez::timer::ticks(&ctx) % 50 == 0 {
@@ -133,20 +129,20 @@ impl EventHandler for MyGame {
 
         let mut batch = SpriteBatch::new(self.spritesheet.image.clone());
 
-        for i in 0..self.dimensions.0 {
-            for j in 0..self.dimensions.1 {
+        for i in 0..self.map.dimensions.0 {
+            for j in 0..self.map.dimensions.1 {
                 
-                let mut param = DrawParam::default().dest( mint::Point2{ x: i as f32*(self.tile_size+0.0), y: j as f32*(self.tile_size+0.0)} );
+                let mut param = DrawParam::default().dest( mint::Point2{ x: i as f32*(self.map.tile_size+0.0), y: j as f32*(self.map.tile_size+0.0)} );
 
                 let mut alpha = 255;
-                match self.tile_states[(i+self.dimensions.0*j) as usize] {
-                    TileState::Full(known) => {
+                match self.map.tile_states[(i+self.map.dimensions.0*j) as usize] {
+                    map::TileState::Full(known) => {
                         if !known { alpha = 125 }
                         param = param
                             .src( graphics::Rect{ x: 0.0, y:0.0, w:1.0, h:0.5} )
                             .color(Color::from_rgba(9,17,51,alpha));
                     },
-                    TileState::Empty(ref mut known) => {
+                    map::TileState::Empty(ref mut known) => {
                         if !*known { alpha = 125 }
                         param = param
                             .src( graphics::Rect{ x: 0.0, y:0.5, w:1.0, h:0.5} )

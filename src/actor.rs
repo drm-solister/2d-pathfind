@@ -7,10 +7,10 @@ use crate::{MyGame, TileState};
 
 
 pub struct Actor {
-    pos: Point2<f32>,
+    pub pos: Point2<f32>,
     vel: Vector2<f32>,
-    view_rad: f32,
-    ray_num: u16,
+    pub view_rad: f32,
+    pub ray_num: u16,
     actor_mesh: Mesh,
     range_mesh: Mesh
 }
@@ -58,21 +58,21 @@ impl Actor {
         self.pos.y += vel.y;
     }
 
-    pub fn look_around(&mut self, tile_states: &mut Vec<TileState>, tile_size: f32, dimensions: (u16, u16)) {
-        let inc = std::f32::consts::PI / self.ray_num as f32;
+    // pub fn look_around(&mut self, map: &mut map::Map) {
+    //     let inc = std::f32::consts::PI / self.ray_num as f32;
 
-        let mut theta = 0.0;
-        while theta < 2.0 * std::f32::consts::PI {
-            let dx = f32::cos(theta)*self.view_rad;
-            let dy = f32::sin(theta)*self.view_rad;
+    //     let mut theta = 0.0;
+    //     while theta < 2.0 * std::f32::consts::PI {
+    //         let dx = f32::cos(theta)*self.view_rad;
+    //         let dy = f32::sin(theta)*self.view_rad;
 
-            let ray_endpoint = Point2{ x: self.pos.x + dx, y: self.pos.y + dy};
+    //         let ray_endpoint = Point2{ x: self.pos.x + dx, y: self.pos.y + dy};
 
-            map::dda(tile_states, tile_size, dimensions, self.pos, ray_endpoint);
+    //         map.dda(&mut map.tile_states, map.tile_size, map.dimensions, self.pos, ray_endpoint);
 
-            theta += inc;
-        }
-    }
+    //         theta += inc;
+    //     }
+    // }
 
     // ahahahhhaaaaaa this also needs my_game
     // pub fn overlaps_with(&mut self, ) -> Vec<u16>
