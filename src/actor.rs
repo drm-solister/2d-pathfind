@@ -1,5 +1,5 @@
 use ggez::graphics::{self, Mesh, DrawParam, Color};
-use ggez::{Context, GameResult};
+use ggez::{Context, GameResult, timer};
 use mint::*;
 
 use crate::map;
@@ -14,10 +14,11 @@ pub struct Actor {
     actor_mesh: Mesh,
     range_mesh: Mesh,
     rad: f32,
+    collision: bool
 }
 
 impl Actor {
-    pub fn new(ctx: &mut Context, pos: Point2<f32>, view_rad: f32, ray_num: u16, rad: f32) -> Actor {
+    pub fn new(ctx: &mut Context, pos: Point2<f32>, view_rad: f32, ray_num: u16, rad: f32, collision: bool) -> Actor {
         let actor_mesh = Mesh::new_circle(
             ctx,
             graphics::DrawMode::fill(),
@@ -44,6 +45,7 @@ impl Actor {
             actor_mesh,
             range_mesh,
             rad,
+            collision,
         }
     }
 
@@ -57,26 +59,33 @@ impl Actor {
         Ok(())
     }
 
-    pub fn update_pos(&mut self, vel: Vector2<f32>, map: &mut map::Map) {
+    pub fn update_pos(&mut self, ctx: &mut Context, vel: Vector2<f32>, map: &mut map::Map) {
 
-        let speed = 1;
+        let delta = timer::delta(ctx).as_micros();
+        let speed: f32 = 3.0 * delta as f32 / 10000.0;
         //let theta = vel.y/vel.x;
         // let theta = vel.y.atan2(vel.x);
         // let theta = vel.x.atan2(vel.y);
+        // println!("speed: {:?}", speed);
 
         let magnitude = f32::sqrt( f32::powf(vel.x, 2.0) + f32::powf(vel.y, 2.0) );
-        println!("magnitude: {:?}", magnitude);
 
-        self.pos.x += vel.x;
-        self.pos.y += vel.y;
+        let dx = speed*vel.x/magnitude;
+        let dy = speed*vel.y/magnitude;
+
+        if vel.x != 0.0 { self.pos.x += dx; }
+        if vel.y != 0.0 { self.pos.y += dy; }
+
 
         if self.pos.x < 0.0 || self.pos.x > map.tile_size * map.dimensions.0 as f32 {
-            self.pos.x -= vel.x;
+            self.pos.x -= dx;
         }
 
         if self.pos.y < 0.0 || self.pos.y > map.tile_size * map.dimensions.1 as f32 {
-            self.pos.y -= vel.y;
+            self.pos.y -= dy;
         }
+
+        if !self.collision { return; }
 
         // check if new position is valid
         let overlapping_tiles = self.overlaps_with(map);
@@ -85,8 +94,8 @@ impl Actor {
             if let map::TileState::Full(_) = map.tile_states[tile] {
                 // collision
                 //println!("collided");
-                self.pos.x -= vel.x;
-                self.pos.y -= vel.y;
+                self.pos.x -= dx;
+                self.pos.y -= dy;
                 return;
             }
         }

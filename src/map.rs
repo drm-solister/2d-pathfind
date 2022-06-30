@@ -1,5 +1,5 @@
 use ggez::{Context, GameResult};
-use ggez::graphics::{self, Mesh, Color, DrawParam, Image};
+use ggez::graphics::{self, Mesh, Color, DrawParam, Image, Text};
 use mint::*;
 use crate::{MyGame};
 
@@ -15,12 +15,15 @@ pub struct Map {
     pub dimensions: (u16, u16),
     pub tile_size: f32,
     pub tile_states: Vec<TileState>,
+    pub scoreboard_txt: Option<Text>,
+    pub goal: Goal,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub enum TileState {
     Empty(bool),
     Full(bool),
+    Goal(bool),
 }
 
 impl Map {
@@ -33,10 +36,14 @@ impl Map {
         //     }
         // }
 
+        let scoreboard_txt = Some(Text::new(format!("Score")));
+
         Map {
             dimensions,
             tile_size,
             tile_states,
+            scoreboard_txt,
+            goal: Goal { position: None },
         }
 
     }
@@ -62,8 +69,24 @@ impl Map {
         return Point2{x: x as u16, y: y as u16}
     }
 
-    pub fn point_to_point_dist() {
-        todo!()
+    pub fn point_to_point_dist(p1: Point2<f32>, p2: Point2<f32>) -> f32 {
+        let dx = (p1.x - p2.x).abs();
+        let dy = (p1.y - p2.y).abs();
+
+        return f32::sqrt( f32::powf(dx, 2.0) + f32::powf(dy, 2.0));
+    }
+
+    // score is proportional to the pixel distance between the actor and the goal
+    pub fn update_score(&mut self, actor: &mut actor::Actor) {
+        let mut score;
+        match self.goal.position {
+            None => score = -1.0,
+            Some(position) => {
+                score = Map::point_to_point_dist(position, actor.pos);
+            }
+        }
+
+        self.scoreboard_txt = Some(graphics::Text::new(format!("Score: {:?}", score)));
     }
 
     pub fn draw_line(ctx: &mut Context, origin: Point2<f32>, endpoint: Point2<f32>) -> GameResult<()> {
@@ -114,11 +137,37 @@ impl Map {
                     return;
                 }
                 TileState::Empty(ref mut x) => *x = true,
+                TileState::Goal(ref mut x) => *x = true, // TODO combine these
             }
     
             x += x_inc;
             y += y_inc;
         }
+    }
+
+    pub fn set_goal(&mut self, new_pos: Point2<f32>) {
+
+        match self.goal.position {
+            Some(mut position) => {
+                // set the old position to a empty tile
+                let index_of_pos = self.index_from_mouse(position);
+                self.tile_states[index_of_pos] = TileState::Empty(false);
+
+                // change the position and set the new tile
+                let new_index = self.index_from_mouse(new_pos);
+                self.tile_states[new_index] = TileState::Goal(false); // this could be done outside of the match statement
+                self.goal.position = Some(new_pos);
+
+            },
+            None => {
+                println!("first time set");
+                let new_index = self.index_from_mouse(new_pos);
+                self.tile_states[new_index] = TileState::Goal(false); // this could be done outside of the match statement
+                self.goal.position = Some(new_pos);
+                return;
+            }
+        }
+
     }
 
 }
@@ -129,3 +178,12 @@ struct PxLine {
     endpoint: Point2<f32>,
 }
 
+pub struct Goal {
+    pub position: Option<Point2<f32>>,
+}
+
+impl Goal {
+    pub fn set(&mut self, pos: Point2<f32>) {
+        self.position = Some(pos);
+    }
+}

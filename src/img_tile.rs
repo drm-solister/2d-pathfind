@@ -32,8 +32,17 @@ pub fn new(ctx: &mut Context, length: u16) -> Image {
 
     }
 
-    let tilesheet = [solid, hollow].concat();
+    let mut goal = vec![0; (length*length*4) as usize];
+
+    for i in (0..goal.len()).step_by(4) {
+        goal[i] = 239;    // red
+        goal[i+1] = 187;  // green
+        goal[i+2] = 33;  // blue
+        goal[i+3] = 255;  // alpha
+    }
+
+    let tilesheet = [solid, hollow, goal].concat();
 
 
-    Image::from_rgba8(ctx, length as u16, (length*2) as u16, &tilesheet[..]).expect("could not create image")
+    Image::from_rgba8(ctx, length as u16, (length*3) as u16, &tilesheet[..]).expect("could not create image")
 }

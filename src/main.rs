@@ -1,6 +1,6 @@
 #![allow(dead_code, unused_imports)]
 use ggez;
-use ggez::graphics::{self, Mesh, Color, DrawParam, Image, spritebatch::SpriteBatch, MeshBuilder};
+use ggez::graphics::{self, Mesh, Color, DrawParam, Image, spritebatch::SpriteBatch, MeshBuilder, Rect};
 use ggez::{Context, ContextBuilder, GameResult};
 use ggez::event::{self, EventHandler};
 use ggez::input::keyboard::KeyCode;
@@ -11,6 +11,7 @@ use mint::*;
 mod img_tile;
 mod map;
 mod actor;
+// mod goal;
 
 fn main() {
 
@@ -32,7 +33,7 @@ fn main() {
         .window_mode(
             ggez::conf::WindowMode {
                 width,
-                height,
+                height: height+40.0,
                 ..ggez::conf::WindowMode::default()
             }
         )
@@ -49,6 +50,7 @@ pub struct MyGame {
     pub map: map::Map,
     pub spritesheet: SpriteSheet,
     pub actor: actor::Actor,
+    clicked_on: Option<map::TileState>,
 }
 
 impl MyGame {
@@ -69,10 +71,14 @@ impl MyGame {
             map: map::Map::new(dimensions, tile_size),
             spritesheet: SpriteSheet {
                 image: img_tile::new(ctx, tile_size as u16),
-                empty: (0.0, 0.5),
-                full: (0.0, 0.0),
+                // described the location of each tile on the spritesheet
+                full: Rect::new(0.0, 0.0, 1.0, 0.33333),
+                empty: Rect::new(0.0, 0.3333, 1.0, 0.3333),
+                goal: Rect::new(0.0, 0.6666, 1.0, 0.3333)
             },
-            actor: actor::Actor::new(ctx, Point2{x: 10.0, y: 10.0}, 50.0, 10, 5.0),
+            // context, location, view radius, view rays, size, collision
+            actor: actor::Actor::new(ctx, Point2{x: 10.0, y: 10.0}, 100.0, 10, 5.0, true),
+            clicked_on: None,
         }
 
     }
@@ -86,7 +92,29 @@ impl EventHandler for MyGame {
         if pressed {
             let mouse_pos = ggez::input::mouse::position(ctx);
             let clicked_index = self.map.index_from_mouse(mouse_pos);
-            self.map.tile_states[ clicked_index ] = map::TileState::Full(false);
+
+            // click and drag to change one type of tile at a time
+            if let None = self.clicked_on {
+                self.clicked_on = Some(self.map.tile_states[clicked_index]);
+            }
+
+            match self.map.tile_states[clicked_index] {
+                map::TileState::Full(_) => {
+                    if let Some(map::TileState::Full(_)) = self.clicked_on {
+                        self.map.tile_states[clicked_index] = map::TileState::Empty(false)
+                    }
+                },
+                map::TileState::Empty(_) => {
+                    if let Some(map::TileState::Empty(_)) = self.clicked_on {
+                        self.map.tile_states[clicked_index] = map::TileState::Full(false)
+                    }
+                },
+                _ => ()
+            }
+
+            //self.map.tile_states[ clicked_index ] = map::TileState::Full(false);
+        } else {
+            self.clicked_on = None;
         }
 
         //let origin = Point2{x: 10.0, y: 10.0};
@@ -109,11 +137,12 @@ impl EventHandler for MyGame {
                 KeyCode::A => v_x -= 1.0,
                 KeyCode::S => v_y += 1.0,
                 KeyCode::D => v_x += 1.0,
+                KeyCode::G => self.map.set_goal(ggez::input::mouse::position(ctx)),
                 _ => (),
             }
         }
 
-        self.actor.update_pos(Vector2{x: v_x, y: v_y}, &mut self.map);
+        self.actor.update_pos(ctx, Vector2{x: v_x, y: v_y}, &mut self.map);
         // it would maybe make more sense to put this in actor but then again... it works as is
         self.map.look_around(&mut self.actor);
 
@@ -145,16 +174,21 @@ impl EventHandler for MyGame {
                     map::TileState::Full(known) => {
                         if !known { alpha = 125 }
                         param = param
-                            .src( graphics::Rect{ x: 0.0, y:0.0, w:1.0, h:0.5} )
+                            .src( self.spritesheet.full )
                             .color(Color::from_rgba(9,17,51,alpha));
                     },
                     map::TileState::Empty(ref mut known) => {
                         if !*known { alpha = 125 }
                         param = param
-                            .src( graphics::Rect{ x: 0.0, y:0.5, w:1.0, h:0.5} )
+                            .src( self.spritesheet.empty )
                             .color(Color::from_rgba(124,174,195,alpha));
                         //*known = false; // tiles dont stay "known"
                     },
+                    map::TileState::Goal(ref mut known) => {
+                        if !*known { alpha = 125 }
+                        param = param
+                            .src(self.spritesheet.goal)
+                    }
                     _ => (),
                 }
 
@@ -163,12 +197,21 @@ impl EventHandler for MyGame {
         }
         graphics::draw(ctx, &batch, DrawParam::default())?;
 
+        if let Some(x) = &self.map.scoreboard_txt {
+            // param is for placement of text
+            let param = DrawParam::default()
+                .dest( Point2{x: 50.0, y: self.map.dimensions.1 as f32*self.map.tile_size} )
+                .color(Color::from_rgba(0,0,0,255));
+            graphics::draw(ctx, x, param)?;
+        }
+
 
         // for debugging, this draws a line
         // let mouse_pos = ggez::input::mouse::position(ctx);
         // let origin = Point2{x: 10.0, y: 10.0};
         // let target = Point2{x: 300.0, y: 400.0};
         // map::draw_line(ctx, origin, mouse_pos);
+        self.map.update_score(&mut self.actor);
 
         self.actor.draw(ctx)?;
         self.actor.draw_range(ctx)?;
@@ -189,8 +232,9 @@ pub enum TileState {
 // seperate sprite/tile idk the term is located
 pub struct SpriteSheet {
     image: Image,
-    empty: (f32, f32),
-    full: (f32, f32),
+    empty: Rect,
+    full: Rect,
+    goal: Rect,
 }
 
 
@@ -216,11 +260,13 @@ pub struct SpriteSheet {
 //      but also i may just have slight math mistakes in my algorithm
 //      but it literally uses inverse square roots but slow
 //      [x] - DDA implemented
-// [ ] - make movement speed independent of framerate (when a human is controlling it), and make it normalized (cant move faster diagonally)
+// [x] - make movement speed independent of framerate (when a human is controlling it), and make it normalized (cant move faster diagonally)
 // [x] - collision
 //      [ ] - improve collision (mainly let the actor slide up walls when youre holding in to it. maybe remove the overlaps_with function its unneeded atm)
+//      i actually cant figure out how to do this am i stupid
 // [x] - add back in clicking to add full tiles
-//      [ ] - make it so that if you start clicking on a full tile, all the tiles you drag over become empty
+//      [x] - make it so that if you start clicking on a full tile, all the tiles you drag over become empty
+//      [ ] - add heavier stroke drawing
 // [ ] - make sprite for actor and target
 // [ ] - refactor everything to make it easier to read
 // [ ] - put text on the screen for debugging
