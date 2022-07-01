@@ -11,7 +11,8 @@ use mint::*;
 mod img_tile;
 mod map;
 mod actor;
-// mod goal;
+mod save_manager;
+use save_manager::SaveManager;
 
 fn main() {
 
@@ -51,6 +52,7 @@ pub struct MyGame {
     pub spritesheet: SpriteSheet,
     pub actor: actor::Actor,
     clicked_on: Option<map::TileState>,
+    save_manager: SaveManager,
 }
 
 impl MyGame {
@@ -77,8 +79,9 @@ impl MyGame {
                 goal: Rect::new(0.0, 0.6666, 1.0, 0.3333)
             },
             // context, location, view radius, view rays, size, collision
-            actor: actor::Actor::new(ctx, Point2{x: 10.0, y: 10.0}, 100.0, 10, 5.0, true),
+            actor: actor::Actor::new(ctx, Point2{x: 10.0, y: 10.0}, 60.0, 10, 5.0, true),
             clicked_on: None,
+            save_manager: SaveManager::new(),
         }
 
     }
@@ -138,6 +141,10 @@ impl EventHandler for MyGame {
                 KeyCode::S => v_y += 1.0,
                 KeyCode::D => v_x += 1.0,
                 KeyCode::G => self.map.set_goal(ggez::input::mouse::position(ctx)),
+                KeyCode::M => {
+                    self.save_manager.save_map(&mut self.map);
+                    println!("saving map");
+                },
                 _ => (),
             }
         }
@@ -273,6 +280,7 @@ pub struct SpriteSheet {
 // [x] - test performance on a better computer
 // [ ] - add exporting and loading maps
 // [ ] - add timer, score, win condition
+// [ ] - add way to know if a button is pressed rather than held
 
 
 // could still only update the tiles i need to update and speed up the drawing massively

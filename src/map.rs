@@ -2,6 +2,7 @@ use ggez::{Context, GameResult};
 use ggez::graphics::{self, Mesh, Color, DrawParam, Image, Text};
 use mint::*;
 use crate::{MyGame};
+use serde::{Serialize, Deserialize};
 
 use crate::actor;
 
@@ -11,6 +12,7 @@ use crate::actor;
 //     return index as usize
 // }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Map {
     pub dimensions: (u16, u16),
     pub tile_size: f32,
@@ -19,7 +21,7 @@ pub struct Map {
     pub goal: Goal,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub enum TileState {
     Empty(bool),
     Full(bool),
@@ -178,6 +180,7 @@ struct PxLine {
     endpoint: Point2<f32>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Goal {
     pub position: Option<Point2<f32>>,
 }

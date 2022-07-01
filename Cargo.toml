@@ -9,3 +9,5 @@ edition = "2021"
 ggez = "0.7.0"
 glam = "*"
 mint = "0.5.9"
+rand = "*"
+serde = { version = "1.0.*", features = ["derive"]}

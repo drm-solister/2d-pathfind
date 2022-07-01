@@ -98,6 +98,10 @@ impl Actor {
                 self.pos.y -= dy;
                 return;
             }
+
+            if let map::TileState::Goal(_) = map.tile_states[tile] {
+                println!("yipeeeee!!!!");
+            }
         }
     }
 
