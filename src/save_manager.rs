@@ -5,6 +5,7 @@ use std::io::Write;
 use serde::{Serialize, Deserialize};
 
 use crate::map;
+use crate::actor;
 
 pub struct SaveManager {
     pub time_of_last_save: SystemTime,
@@ -18,7 +19,7 @@ impl SaveManager {
         SaveManager { time_of_last_save: SystemTime::now() }
     }
 
-    pub fn save_map(&mut self, map: &mut map::Map) -> std::io::Result <()> {
+    pub fn save_map(&mut self, map: &mut map::Map, actor: &mut actor::Actor) -> std::io::Result <()> {
 
         let now = SystemTime::now();
         let time_since_last_save = now.duration_since(self.time_of_last_save).unwrap();
@@ -56,11 +57,19 @@ impl SaveManager {
 
             if valid {
                 let mut file = fs::File::create(target_path)?;
-                let serialized = serde_json::to_string(&map).unwrap();
-                file.write_all(serialized);
-                // file.write_all(format!("dimensions: {:?}\n", map.dimensions).as_bytes());
-                // file.write_all(format!("tile_size: {:?}\n", map.tile_size).as_bytes());
-                // file.write_all(format!("tile_states: {:?}\n", map.tile_states).as_bytes());
+
+                let save_file = SaveFile {
+                    tile_states: map.tile_states.clone(),
+                    dimensions: (map.dimensions.0, map.dimensions.1),
+                    tile_size: map.tile_size,
+                    starting_point: (actor.pos.x, actor.pos.y),
+                    goal_position: match map.goal.pos {
+                        Some(pos) => Some((pos.x, pos.y)),
+                        None => None,
+                    },
+                };
+                let serialized = serde_json::to_string(&save_file).unwrap();
+                file.write_all(serialized.as_bytes());
             }
 
         }
@@ -70,8 +79,21 @@ impl SaveManager {
 
 }
 
-pub fn read_map(file: &str) -> map::Map {
-    todo!();
+pub fn load_map(file: &str) -> Option<SaveFile> {
+    let mut cwd = env::current_dir().unwrap();
+    cwd.push("maps");
+    let serialized = fs::read_to_string(cwd.join(file));
+
+    match serialized {
+        Ok(_) => (),
+        _ => {
+            println!("something went wrong oh no!!!1");
+            return None;
+        }
+    }
+
+    let deserialized: SaveFile = serde_json::from_str(&serialized.unwrap()).unwrap();
+    return Some(deserialized);
 }
 
 // data serialization or something like that is likely the obvious way to go here but
@@ -79,3 +101,14 @@ pub fn read_map(file: &str) -> map::Map {
 // more time than i need to polishing this
 
 // actually serde would make this way easier than writing everything as a string lmaoooo
+
+
+// a struct that holds all the important information for a map in a struct that i can serialize
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SaveFile {
+    pub tile_states: Vec<map::TileState>,
+    pub dimensions: (u16, u16),
+    pub tile_size: f32,
+    pub starting_point: (f32, f32), // just the position of the actor when the map is saved
+    pub goal_position: Option<(f32, f32)>,
+}

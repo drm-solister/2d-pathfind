@@ -16,6 +16,8 @@ use save_manager::SaveManager;
 
 fn main() {
 
+    let map_to_load: Option<&str> = Some("saves_work!");
+
     let dimensions: (u16, u16) = (60, 50);
     let tile_size = 10.0;
 
@@ -42,7 +44,7 @@ fn main() {
         .expect("could not create ggez context");
     
 
-    let my_game = MyGame::new(&mut ctx, dimensions, tile_size);
+    let my_game = MyGame::new(&mut ctx, dimensions, tile_size, map_to_load);
 
     event::run(ctx, event_loop, my_game);
 }
@@ -56,32 +58,51 @@ pub struct MyGame {
 }
 
 impl MyGame {
-    pub fn new(ctx: &mut Context, dimensions: (u16, u16), tile_size: f32) -> MyGame {
+    pub fn new(ctx: &mut Context, dimensions: (u16, u16), tile_size: f32, map_to_load: Option<&str>) -> MyGame {
 
-        // let dimensions: (u16, u16) = (100, 100);
-        // let tile_size = 10.0;
+        // values that one change whether or not a map is being loaded
+        let spritesheet = SpriteSheet {
+            image: img_tile::new(ctx, tile_size as u16),
+            // described the location of each tile on the spritesheet
+            full: Rect::new(0.0, 0.0, 1.0, 0.33333),
+            empty: Rect::new(0.0, 0.3333, 1.0, 0.3333),
+            goal: Rect::new(0.0, 0.6666, 1.0, 0.3333)
+        };
 
-        // tile_states is now done in map.rs
-        // let mut tile_states = vec![TileState::Empty(false); (dimensions.0 as u32 *dimensions.1 as u32) as usize];
-        // for i in 0..dimensions.0*dimensions.1 {
-        //     if i%2 == 0 && i%30 != 0{
-        //         tile_states[i as usize] = TileState::Full(false);
-        //     }
-        // }
+        if let Some(file_name) = map_to_load {
+            let save_file = save_manager::load_map(file_name).unwrap();
 
-        MyGame {
-            map: map::Map::new(dimensions, tile_size),
-            spritesheet: SpriteSheet {
-                image: img_tile::new(ctx, tile_size as u16),
-                // described the location of each tile on the spritesheet
-                full: Rect::new(0.0, 0.0, 1.0, 0.33333),
-                empty: Rect::new(0.0, 0.3333, 1.0, 0.3333),
-                goal: Rect::new(0.0, 0.6666, 1.0, 0.3333)
-            },
-            // context, location, view radius, view rays, size, collision
-            actor: actor::Actor::new(ctx, Point2{x: 10.0, y: 10.0}, 60.0, 10, 5.0, true),
-            clicked_on: None,
-            save_manager: SaveManager::new(),
+            let goal_pos = match save_file.goal_position {
+                None => None,
+                Some(position) => {
+                    Some(Point2 {x: position.0, y: position.1})
+                }
+            };
+
+            MyGame {
+                map: map::Map {
+                    dimensions: save_file.dimensions,
+                    tile_size: save_file.tile_size,
+                    tile_states: save_file.tile_states,
+                    scoreboard_txt: None,
+                    goal: map::Goal { pos: goal_pos},
+                },
+                spritesheet,
+                actor: actor::Actor::new(ctx, Point2{x: save_file.starting_point.0, y: save_file.starting_point.1}, 60.0, 10, 5.0, true),
+                clicked_on: None,
+                save_manager: SaveManager::new(),
+            }
+
+        } else {
+            // return a map with some defaults
+            MyGame {
+                map: map::Map::new(dimensions, tile_size),
+                spritesheet,
+                // context, location, view radius, view rays, size, collision
+                actor: actor::Actor::new(ctx, Point2{x: 10.0, y: 10.0}, 60.0, 10, 5.0, true),
+                clicked_on: None,
+                save_manager: SaveManager::new(),
+            }
         }
 
     }
@@ -142,7 +163,7 @@ impl EventHandler for MyGame {
                 KeyCode::D => v_x += 1.0,
                 KeyCode::G => self.map.set_goal(ggez::input::mouse::position(ctx)),
                 KeyCode::M => {
-                    self.save_manager.save_map(&mut self.map);
+                    self.save_manager.save_map(&mut self.map, &mut self.actor);
                     println!("saving map");
                 },
                 _ => (),
@@ -278,7 +299,8 @@ pub struct SpriteSheet {
 // [ ] - refactor everything to make it easier to read
 // [ ] - put text on the screen for debugging
 // [x] - test performance on a better computer
-// [ ] - add exporting and loading maps
+// [x] - add exporting and loading maps
+//      [ ] - make all tiles invisible in a saved map
 // [ ] - add timer, score, win condition
 // [ ] - add way to know if a button is pressed rather than held
 

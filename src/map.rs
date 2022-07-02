@@ -12,7 +12,7 @@ use crate::actor;
 //     return index as usize
 // }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
 pub struct Map {
     pub dimensions: (u16, u16),
     pub tile_size: f32,
@@ -45,7 +45,7 @@ impl Map {
             tile_size,
             tile_states,
             scoreboard_txt,
-            goal: Goal { position: None },
+            goal: Goal { pos: None },
         }
 
     }
@@ -81,10 +81,10 @@ impl Map {
     // score is proportional to the pixel distance between the actor and the goal
     pub fn update_score(&mut self, actor: &mut actor::Actor) {
         let mut score;
-        match self.goal.position {
+        match self.goal.pos {
             None => score = -1.0,
-            Some(position) => {
-                score = Map::point_to_point_dist(position, actor.pos);
+            Some(pos) => {
+                score = Map::point_to_point_dist(pos, actor.pos);
             }
         }
 
@@ -149,23 +149,23 @@ impl Map {
 
     pub fn set_goal(&mut self, new_pos: Point2<f32>) {
 
-        match self.goal.position {
-            Some(mut position) => {
+        match self.goal.pos {
+            Some(mut pos) => {
                 // set the old position to a empty tile
-                let index_of_pos = self.index_from_mouse(position);
+                let index_of_pos = self.index_from_mouse(pos);
                 self.tile_states[index_of_pos] = TileState::Empty(false);
 
                 // change the position and set the new tile
                 let new_index = self.index_from_mouse(new_pos);
                 self.tile_states[new_index] = TileState::Goal(false); // this could be done outside of the match statement
-                self.goal.position = Some(new_pos);
+                self.goal.pos = Some(new_pos);
 
             },
             None => {
                 println!("first time set");
                 let new_index = self.index_from_mouse(new_pos);
                 self.tile_states[new_index] = TileState::Goal(false); // this could be done outside of the match statement
-                self.goal.position = Some(new_pos);
+                self.goal.pos = Some(new_pos);
                 return;
             }
         }
@@ -180,13 +180,13 @@ struct PxLine {
     endpoint: Point2<f32>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
 pub struct Goal {
-    pub position: Option<Point2<f32>>,
+    pub pos: Option<Point2<f32>>,
 }
 
 impl Goal {
     pub fn set(&mut self, pos: Point2<f32>) {
-        self.position = Some(pos);
+        self.pos = Some(pos);
     }
 }

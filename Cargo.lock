@@ -1788,6 +1788,7 @@ dependencies = [
  "mint",
  "rand",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
