@@ -316,3 +316,10 @@ pub struct SpriteSheet {
 // the look_around() function in actor is looking jankier by the second
 // some functions just take my_game but others cant
 // can my_game not own actor but just a reference to it? but then what would the lifetime of it be.
+
+
+// communicating between python and this game
+// pipes, sockets?
+// https://nats.io/
+// interprocess communication
+// https://www.dvlv.co.uk/how-to-do-inter-process-communication-ipc-w-python-and-rust.html
